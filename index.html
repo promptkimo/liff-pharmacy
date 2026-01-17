@@ -11,49 +11,22 @@
 
   <style>
     :root {
-      --primary-color: #06C755; /* LINE Green */
-      --primary-dark: #05a546;
+      --primary-color: #06C755;
       --bg-color: #F5F7F9;
       --card-bg: #FFFFFF;
       --text-main: #333333;
-      --text-sub: #888888;
     }
-
     body {
       background-color: var(--bg-color);
       font-family: 'Noto Sans TC', sans-serif;
       color: var(--text-main);
       padding-bottom: 40px;
     }
-
-    .main-container {
-      max-width: 480px; /* 手機最佳寬度 */
-      margin: 0 auto;
-      padding: 15px;
-    }
-
-    /* 標題區塊 */
-    .header-area {
-      text-align: center;
-      margin-bottom: 25px;
-      padding-top: 20px;
-    }
-    .header-icon {
-      font-size: 2.5rem;
-      color: var(--primary-color);
-      margin-bottom: 5px;
-    }
-    .header-title {
-      font-weight: 700;
-      font-size: 1.5rem;
-      margin: 0;
-    }
-    .header-subtitle {
-      color: var(--text-sub);
-      font-size: 0.9rem;
-    }
-
-    /* 卡片通用樣式 */
+    .main-container { max-width: 480px; margin: 0 auto; padding: 15px; }
+    .header-area { text-align: center; margin-bottom: 25px; padding-top: 20px; }
+    .header-title { font-weight: 700; font-size: 1.5rem; margin: 0; }
+    .header-subtitle { color: #888; font-size: 0.9rem; }
+    
     .custom-card {
       background: var(--card-bg);
       border-radius: 20px;
@@ -61,146 +34,60 @@
       border: none;
       padding: 25px;
       margin-bottom: 20px;
-      transition: transform 0.2s;
     }
 
-    /* 輸入框美化 */
-    .form-label {
-      font-weight: 500;
-      font-size: 0.95rem;
-      color: #555;
-      margin-bottom: 8px;
-    }
+    .form-label { font-weight: 500; font-size: 0.95rem; color: #555; margin-bottom: 8px; }
     .form-control, .form-select {
-      border-radius: 12px;
-      border: 1px solid #eee;
-      padding: 12px 15px;
-      background-color: #fafafa;
-      font-size: 1rem;
-      transition: all 0.3s;
+      border-radius: 12px; border: 1px solid #eee; padding: 12px 15px; background-color: #fafafa;
     }
-    .form-control:focus, .form-select:focus {
-      border-color: var(--primary-color);
-      background-color: #fff;
-      box-shadow: 0 0 0 4px rgba(6, 199, 85, 0.1);
-    }
+    .form-control:focus { border-color: var(--primary-color); background-color: #fff; box-shadow: none; }
 
-    /* 上傳區塊美化 */
+    /* 上傳區塊 */
     .upload-zone {
-      border: 2px dashed #ddd;
-      border-radius: 16px;
-      padding: 30px 20px;
-      text-align: center;
-      background-color: #fafafa;
-      cursor: pointer;
-      transition: all 0.3s;
-      position: relative;
+      border: 2px dashed #ddd; border-radius: 16px; padding: 30px 20px;
+      text-align: center; background-color: #fafafa; cursor: pointer; transition: all 0.3s;
     }
-    .upload-zone:active {
-      background-color: #e8f5e9;
-      border-color: var(--primary-color);
-    }
-    .upload-zone.has-file {
-      border-style: solid;
-      border-color: var(--primary-color);
-      background-color: #f0fff4;
-    }
-    .upload-icon {
-      font-size: 2rem;
-      color: #aaa;
-      margin-bottom: 10px;
-    }
-    .upload-text {
-      color: #666;
-      font-size: 0.9rem;
-    }
-    .file-name-display {
-      color: var(--primary-color);
-      font-weight: bold;
-      margin-top: 5px;
-      word-break: break-all;
-    }
+    .upload-zone.has-file { border-style: solid; border-color: var(--primary-color); background-color: #f0fff4; }
+    .upload-icon { font-size: 2rem; color: #aaa; margin-bottom: 10px; }
+    .file-name-display { color: var(--primary-color); font-weight: bold; margin-top: 5px; }
 
-    /* 按鈕美化 */
     .btn-main {
       background: linear-gradient(135deg, #06C755 0%, #04b34b 100%);
-      border: none;
-      border-radius: 50px;
-      color: white;
-      font-weight: bold;
-      padding: 14px;
-      width: 100%;
-      font-size: 1.1rem;
-      box-shadow: 0 4px 15px rgba(6, 199, 85, 0.3);
-      transition: transform 0.2s;
+      border: none; border-radius: 50px; color: white; font-weight: bold; padding: 14px; width: 100%;
+      font-size: 1.1rem; box-shadow: 0 4px 15px rgba(6, 199, 85, 0.3);
     }
-    .btn-main:active {
-      transform: scale(0.98);
-      box-shadow: 0 2px 8px rgba(6, 199, 85, 0.2);
+    
+    .line-login-btn {
+      background-color: #06C755; color: white; font-weight: bold; border-radius: 12px; padding: 12px; width: 100%;
     }
-    .btn-outline {
-      border: 1px solid #ddd;
-      background: white;
-      color: #666;
-      border-radius: 50px;
-      padding: 10px;
-      font-size: 0.9rem;
-      transition: all 0.3s;
-    }
-    .btn-outline:hover {
-      background: #f8f9fa;
-      color: #333;
-    }
-
-    /* 遮罩層 */
+    
     #loadingOverlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(255, 255, 255, 0.95);
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      backdrop-filter: blur(5px);
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.95);
+      z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;
     }
     .hidden { display: none !important; }
     
-    /* 登入按鈕 */
-    .line-login-btn {
-      background-color: #06C755;
-      color: white;
-      font-weight: bold;
-      border-radius: 12px;
-      padding: 12px;
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      box-shadow: 0 4px 10px rgba(6,199,85,0.2);
-    }
+    .status-badge { padding: 3px 8px; border-radius: 10px; font-size: 0.8rem; }
+    .bg-pending { background-color: #fff8e1; color: #f57c00; }
+    .bg-done { background-color: #e8f5e9; color: #2e7d32; }
   </style>
 </head>
 <body>
 
 <div id="loadingOverlay">
-  <div class="spinner-border text-success" role="status" style="width: 3rem; height: 3rem;"></div>
+  <div class="spinner-border text-success" role="status"></div>
   <p class="mt-3 text-secondary fw-bold" id="loadingText">系統連線中...</p>
 </div>
 
 <div class="main-container">
   
   <div class="header-area">
-    <div class="header-icon"><i class="bi bi-capsule-pill"></i></div>
-    <h1 class="header-title">處方箋快傳</h1>
+    <h1 class="header-title"><i class="bi bi-capsule-pill text-success"></i> 處方箋快傳</h1>
     <p class="header-subtitle">快速、安全、免排隊</p>
   </div>
 
   <div id="loginSection" class="custom-card hidden text-center">
-    <div class="mb-3 text-muted">
-      <i class="bi bi-person-circle" style="font-size: 3rem; color:#eee;"></i>
-      <p class="mt-2 mb-3 small">登入 LINE 帳號可自動帶入資料<br>並查詢歷史上傳紀錄</p>
-    </div>
+    <p class="mb-3 text-muted small">請先登入以辨識您的身分</p>
     <button onclick="liff.login()" class="btn line-login-btn">
       <i class="bi bi-line"></i> 登入 LINE 帳號
     </button>
@@ -208,10 +95,8 @@
 
   <div id="welcomeSection" class="custom-card hidden" style="background: linear-gradient(135deg, #e8f5e9 0%, #ffffff 100%); border: 1px solid #c8e6c9;">
     <div class="d-flex align-items-center">
-      <div class="flex-shrink-0">
-        <i class="bi bi-person-check-fill text-success fs-3"></i>
-      </div>
-      <div class="flex-grow-1 ms-3">
+      <i class="bi bi-person-check-fill text-success fs-3 me-3"></i>
+      <div>
         <h5 class="mb-0 fw-bold text-success">歡迎您</h5>
         <small class="text-muted"><span id="userName">貴賓</span></small>
       </div>
@@ -219,27 +104,19 @@
   </div>
 
   <div class="custom-card">
-    <h5 class="fw-bold mb-4"><i class="bi bi-file-earmark-medical me-2 text-success"></i>上傳處方箋</h5>
-    
     <form id="uploadForm">
       <div class="mb-3">
-        <label class="form-label">取藥人姓名</label>
-        <input type="text" class="form-control" id="name" required placeholder="請輸入真實姓名">
+        <label class="form-label"><i class="bi bi-person-badge me-1"></i>領藥對象 (要幫誰領藥)</label>
+        <input type="text" class="form-control" id="name" required placeholder="請輸入領藥人的真實姓名">
       </div>
 
-      <div class="row">
-        <div class="col-6 mb-3">
-          <label class="form-label">聯絡電話</label>
-          <input type="tel" class="form-control" id="phone" required placeholder="09xx...">
-        </div>
-        <div class="col-6 mb-3">
-          <label class="form-label">身分證末四碼</label>
-          <input type="number" class="form-control" id="idCheck" required placeholder="1234">
-        </div>
+      <div class="mb-3">
+        <label class="form-label"><i class="bi bi-telephone me-1"></i>聯絡電話</label>
+        <input type="tel" class="form-control" id="phone" required placeholder="09xx...">
       </div>
 
       <div class="mb-4">
-        <label class="form-label">藥師通知方式</label>
+        <label class="form-label"><i class="bi bi-bell me-1"></i>通知方式</label>
         <select class="form-select" id="notify">
           <option value="LINE通知">LINE 通知 (推薦)</option>
           <option value="電話通知">電話通知</option>
@@ -247,7 +124,7 @@
       </div>
 
       <div class="mb-4">
-        <label class="form-label">拍攝處方箋</label>
+        <label class="form-label"><i class="bi bi-camera me-1"></i>拍攝處方箋</label>
         <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
           <i class="bi bi-camera-fill upload-icon"></i>
           <div class="upload-text">點擊拍攝或選擇照片</div>
@@ -264,14 +141,10 @@
 
   <div class="custom-card">
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <h6 class="fw-bold m-0"><i class="bi bi-clock-history me-2"></i>近期紀錄</h6>
-      <button class="btn btn-outline btn-sm" onclick="doSearch()">
-        <i class="bi bi-arrow-clockwise"></i> 重新整理
-      </button>
+      <h6 class="fw-bold m-0"><i class="bi bi-clock-history me-2"></i>您的歷史紀錄</h6>
+      <button class="btn btn-sm btn-outline-secondary" onclick="autoSearch()">重新整理</button>
     </div>
-    <div id="historyBox" class="text-center text-muted small py-3">
-      尚無紀錄
-    </div>
+    <div id="historyBox" class="text-center text-muted small py-3">尚無紀錄</div>
   </div>
   
   <div class="text-center text-muted" style="font-size:10px; margin-top: 20px;">
@@ -281,49 +154,36 @@
 
 <script>
   // ==========================================
-  // 🔥 設定區 (已填入你的資料) 🔥
-  // ==========================================
+  // 🔥 設定區 (務必確認) 🔥
   const MY_LIFF_ID = '2008912977-DuJTm5u1';
-  // 👇 你的 GAS Web App URL
   const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbyUXCejmkI52ZJVUN1K1t1j2ZvfdZMCgHsgB79okITgzn7to2sfte43R5I0GOQnFp1opQ/exec'; 
   // ==========================================
 
   let userLineId = '';
 
   window.onload = function() {
-    // 讀取本地記憶 (優化體驗)
-    if(localStorage.getItem('uName')) document.getElementById('name').value = localStorage.getItem('uName');
+    // 記憶電話 (因為姓名每次可能幫不同人領，所以只記電話)
     if(localStorage.getItem('uPhone')) document.getElementById('phone').value = localStorage.getItem('uPhone');
-    if(localStorage.getItem('uId')) document.getElementById('idCheck').value = localStorage.getItem('uId');
 
-    // 初始化 LIFF
     initLiff();
   };
 
   function initLiff() {
-    liff.init({ liffId: MY_LIFF_ID })
-      .then(() => {
-        document.getElementById('loadingOverlay').classList.add('hidden');
-        
-        if (liff.isLoggedIn()) {
-          liff.getProfile().then(profile => {
-            userLineId = profile.userId;
-            document.getElementById('userName').innerText = profile.displayName;
-            document.getElementById('welcomeSection').classList.remove('hidden');
-            autoSearch();
-          });
-        } else {
-          document.getElementById('loginSection').classList.remove('hidden');
-        }
-      })
-      .catch(err => {
-        console.error(err);
-        document.getElementById('loadingOverlay').classList.add('hidden');
-        // 失敗時不跳 alert 干擾，直接讓用戶填表
-      });
+    liff.init({ liffId: MY_LIFF_ID }).then(() => {
+      document.getElementById('loadingOverlay').classList.add('hidden');
+      if (liff.isLoggedIn()) {
+        liff.getProfile().then(profile => {
+          userLineId = profile.userId;
+          document.getElementById('userName').innerText = profile.displayName; // 顯示 LINE 名稱
+          document.getElementById('welcomeSection').classList.remove('hidden');
+          autoSearch(); // 登入後自動查紀錄
+        });
+      } else {
+        document.getElementById('loginSection').classList.remove('hidden');
+      }
+    });
   }
 
-  // 美化檔案選擇顯示
   function updateFileName(input) {
     const display = document.getElementById('fileNameDisplay');
     const zone = document.querySelector('.upload-zone');
@@ -338,7 +198,6 @@
     }
   }
 
-  // 統一 API 請求
   function sendToGAS(payload) {
     document.getElementById('loadingOverlay').classList.remove('hidden');
     document.getElementById('loadingText').innerText = '資料處理中...';
@@ -350,7 +209,7 @@
     .then(res => res.json())
     .catch(err => {
       console.error(err);
-      alert('連線錯誤，請檢查網路或稍後再試');
+      alert('連線錯誤，請稍後再試');
       return { status: 'error' };
     })
     .finally(() => {
@@ -358,7 +217,6 @@
     });
   }
 
-  // 上傳
   document.getElementById('uploadForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const file = document.getElementById('fileInput').files[0];
@@ -370,31 +228,25 @@
         action: 'upload',
         fileData: e.target.result,
         fileName: file.name,
-        name: document.getElementById('name').value,
+        name: document.getElementById('name').value, // 領藥對象
         phone: document.getElementById('phone').value,
-        idCheck: document.getElementById('idCheck').value,
         notify: document.getElementById('notify').value,
-        lineUserId: userLineId
+        lineUserId: userLineId // 關鍵：只傳 Line ID，不傳身分證
       };
 
-      localStorage.setItem('uName', payload.name);
+      // 記憶電話
       localStorage.setItem('uPhone', payload.phone);
-      localStorage.setItem('uId', payload.idCheck);
 
       sendToGAS(payload).then(res => {
         if(res.status === 'success') {
-          alert('✅ 上傳成功！藥師將盡快為您處理。');
+          alert('✅ 上傳成功！');
           document.getElementById('uploadForm').reset();
-          // 重置上傳框 UI
           document.getElementById('fileNameDisplay').innerText = "";
           document.querySelector('.upload-zone').classList.remove('has-file');
           document.querySelector('.upload-icon').className = 'bi bi-camera-fill upload-icon';
           
-          // 填回記憶資料
-          document.getElementById('name').value = localStorage.getItem('uName');
+          // 填回電話
           document.getElementById('phone').value = localStorage.getItem('uPhone');
-          document.getElementById('idCheck').value = localStorage.getItem('uId');
-          
           if(userLineId) autoSearch();
         } else {
           alert('上傳失敗: ' + (res.message || '未知錯誤'));
@@ -404,39 +256,27 @@
     reader.readAsDataURL(file);
   });
 
-  // 查詢 (自動)
   function autoSearch() {
+    // 只根據 UserID 查詢
     sendToGAS({ action: 'search', userId: userLineId }).then(renderHistory);
   }
 
-  // 查詢 (手動)
-  function doSearch() {
-    const phone = document.getElementById('phone').value;
-    const idCheck = document.getElementById('idCheck').value;
-    if(!phone || !idCheck) return alert('請先輸入電話與身分證末四碼');
-    
-    sendToGAS({ action: 'search', phone: phone, idCheck: idCheck }).then(renderHistory);
-  }
-
-  // 渲染歷史紀錄
   function renderHistory(res) {
     const box = document.getElementById('historyBox');
     if(!res.history || res.history.length === 0) {
-      box.innerHTML = '<div class="py-3">尚無紀錄</div>';
-      return;
+      box.innerHTML = '尚無紀錄'; return;
     }
     let html = '';
     res.history.forEach(h => {
-      let badgeClass = 'status-process';
-      if(h.status === '待處理') badgeClass = 'status-pending';
-      if(h.status === '已完成') badgeClass = 'status-done';
-      
+      let badgeClass = h.status === '待處理' ? 'bg-pending' : 'bg-done';
+      // 顯示領藥人名字
       html += `
-        <div class="history-item">
+        <div class="d-flex justify-content-between align-items-center border-bottom py-2 text-start">
           <div>
-            <div class="history-date">${h.date}</div>
+            <div class="fw-bold text-dark">${h.name}</div>
+            <div class="text-muted small">${h.date}</div>
           </div>
-          <span class="badge-status ${badgeClass}">${h.status}</span>
+          <span class="status-badge ${badgeClass}">${h.status}</span>
         </div>`;
     });
     box.innerHTML = html;
