@@ -8,25 +8,31 @@
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   
   <style>
-    body { background-color: #f8f9fa; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    body { background-color: #f0f2f5; font-family: -apple-system, sans-serif; padding-bottom: 50px; }
     .container { max-width: 600px; padding-top: 20px; }
-    .card { border-radius: 15px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-    .btn-upload { width: 100%; padding: 12px; font-weight: bold; font-size: 1.1rem; }
+    .card { border-radius: 12px; border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; }
     
-    /* 預覽區塊樣式 */
+    /* 上傳區 */
     .preview-box {
-      width: 100%; height: 250px;
-      background: #e9ecef; border: 2px dashed #ced4da; border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
+      width: 100%; height: 220px; background: #e9ecef; border: 2px dashed #ced4da;
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
       overflow: hidden; cursor: pointer; position: relative;
     }
     .preview-box img { width: 100%; height: 100%; object-fit: contain; display: none; }
-    .placeholder-text { color: #6c757d; text-align: center; }
+    .placeholder-text { color: #6c757d; text-align: center; font-size: 0.9rem; }
     
-    /* Loading 遮罩 */
+    /* 歷史紀錄區 */
+    .history-item { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
+    .history-item:last-child { border-bottom: none; }
+    .status-badge { font-size: 0.8rem; padding: 4px 8px; border-radius: 4px; }
+    .status-pending { background: #fff3cd; color: #856404; }
+    .status-ready { background: #d1e7dd; color: #0f5132; }
+    .history-thumb { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; background: #eee; margin-right: 10px; }
+
+    /* Loading */
     #loading {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(255,255,255,0.95); z-index: 9999;
+      background: rgba(255,255,255,0.9); z-index: 9999;
       display: flex; flex-direction: column; justify-content: center; align-items: center;
     }
   </style>
@@ -35,26 +41,18 @@
 
 <div id="loading">
   <div class="spinner-border text-success" role="status"></div>
-  <p class="mt-3 fw-bold text-secondary" id="loadingText">系統啟動中...</p>
+  <p class="mt-3 text-secondary fw-bold" id="loadingText">系統連線中...</p>
 </div>
 
 <div class="container">
+  
   <div class="card p-4">
-    <h3 class="text-center fw-bold text-success mb-3">處方箋快傳</h3>
+    <h4 class="text-center fw-bold text-success mb-3"><i class="bi bi-camera"></i> 處方箋快傳</h4>
     
-    <div class="alert alert-success d-flex align-items-center" role="alert" id="loginInfo" style="display:none !important;">
-      <img id="userThumb" src="" style="width:40px; height:40px; border-radius:50%; margin-right:10px;">
-      <div>
-        <small>歡迎您，</small><br>
-        <strong id="displayName">載入中...</strong>
-      </div>
-    </div>
-
     <div class="mb-3">
-      <label class="form-label fw-bold">1. 拍攝/上傳處方箋</label>
       <div class="preview-box" onclick="document.getElementById('fileInput').click()">
         <div class="placeholder-text" id="placeholder">
-          <span style="font-size: 2rem;">📷</span><br>點擊拍攝
+          <span style="font-size: 2rem;">📷</span><br>點擊拍攝 / 選擇照片
         </div>
         <img id="previewImg">
       </div>
@@ -62,149 +60,134 @@
     </div>
 
     <div class="mb-3">
-      <label class="form-label fw-bold">2. 領藥人姓名</label>
-      <input type="text" class="form-control" id="uName" placeholder="請輸入姓名">
+      <label class="form-label small fw-bold text-muted">領藥人姓名</label>
+      <input type="text" class="form-control" id="uName">
     </div>
-
     <div class="mb-4">
-      <label class="form-label fw-bold">3. 聯絡電話</label>
-      <input type="tel" class="form-control" id="uPhone" placeholder="09xx-xxx-xxx">
+      <label class="form-label small fw-bold text-muted">聯絡電話</label>
+      <input type="tel" class="form-control" id="uPhone">
     </div>
 
-    <button class="btn btn-success btn-upload" onclick="submitData()">確認送出</button>
+    <button class="btn btn-success w-100 py-2 fw-bold" onclick="submitData()">確認送出</button>
   </div>
-  <p class="text-center text-muted mt-3 small">藥師確認後將透過 LINE 通知您</p>
+
+  <div class="card p-3" id="historyCard" style="display: none;">
+    <h6 class="fw-bold text-muted mb-3">📋 最近上傳紀錄</h6>
+    <div id="historyList">
+      </div>
+  </div>
+
 </div>
 
 <script>
   // ==========================================
-  // ⚠️ 請在這裡填入您的資料 ⚠️
+  // ✅ 已填入您的資料
   // ==========================================
-  
-  // 1. 剛剛在 GAS 複製的網址 (結尾是 /exec)
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbyUXCejmkI52ZJVUN1K1t1j2ZvfdZMCgHsgB79okITgzn7to2sfte43R5I0GOQnFp1opQ/exec"; 
-  
-  // 2. 剛剛在 LINE Developers 複製的 LIFF ID
-  const LIFF_ID = "2008912977-DuJTm5u1"; 
-
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbyUXCejmkI52ZJVUN1K1t1j2ZvfdZMCgHsgB79okITgzn7to2sfte43R5I0GOQnFp1opQ/exec";
+  const LIFF_ID = "2008912977-DuJTm5u1";
   // ==========================================
 
   let lineUserId = "";
   let base64Image = "";
   let fileName = "";
 
-  // 網頁載入後初始化 LIFF
   window.onload = function() {
-    initializeLiff();
+    initLiff();
   };
 
-  function initializeLiff() {
-    liff.init({ liffId: LIFF_ID })
-      .then(() => {
-        // 檢查是否已登入
-        if (!liff.isLoggedIn()) {
-          liff.login(); // 沒登入就強制登入
-        } else {
-          // 已登入，抓取資料
-          getProfile();
-        }
-      })
-      .catch((err) => {
-        console.error('LIFF Init Error', err);
-        document.getElementById('loading').style.display = 'none';
-        alert("LINE 登入失敗，請確認 LIFF ID 設定是否正確。");
-      });
+  function initLiff() {
+    liff.init({ liffId: LIFF_ID }).then(() => {
+      if (!liff.isLoggedIn()) {
+        liff.login();
+      } else {
+        liff.getProfile().then(profile => {
+          lineUserId = profile.userId;
+          document.getElementById('uName').value = profile.displayName;
+          document.getElementById('loading').style.display = 'none';
+          
+          // 登入成功後，立刻抓取歷史紀錄
+          loadHistory();
+        });
+      }
+    }).catch(err => {
+      // 雖然 LIFF 失敗，但還是讓使用者可以用基本功能
+      console.error("LIFF Init Error:", err);
+      document.getElementById('loading').style.display = 'none';
+      // alert("LIFF 啟動失敗，請檢查 LIFF ID 設定");
+    });
   }
 
-  function getProfile() {
-    liff.getProfile()
-      .then(profile => {
-        lineUserId = profile.userId;
-        const name = profile.displayName;
-        const pictureUrl = profile.pictureUrl;
-        
-        // 顯示在畫面上
-        document.getElementById('displayName').innerText = name;
-        document.getElementById('uName').value = name; // 自動帶入姓名
-        if(pictureUrl) document.getElementById('userThumb').src = pictureUrl;
-        
-        document.getElementById('loginInfo').style.display = 'flex';
-        document.getElementById('loading').style.display = 'none'; // 關閉 Loading
-      })
-      .catch(err => {
-        console.error('Profile Error', err);
-        document.getElementById('loading').style.display = 'none';
-      });
+  // 讀取歷史紀錄
+  function loadHistory() {
+    // 使用 text/plain 避免 CORS 預檢
+    fetch(GAS_URL, {
+      method: "POST",
+      body: JSON.stringify({ action: "history", lineUserId: lineUserId })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if(data.status === 'success' && data.history && data.history.length > 0) {
+        renderHistory(data.history);
+      }
+    })
+    .catch(e => console.log("History error:", e));
   }
 
-  // 處理圖片選擇
+  function renderHistory(list) {
+    const container = document.getElementById('historyList');
+    container.innerHTML = "";
+    list.forEach(item => {
+      let badgeClass = item.status === '可領藥' ? 'status-ready' : 'status-pending';
+      let html = `
+        <div class="history-item">
+          <img src="${item.img}" class="history-thumb" onerror="this.src='https://placehold.co/50?text=Rx'">
+          <div style="flex-grow: 1;">
+            <div class="small fw-bold">${item.date}</div>
+            <div class="status-badge ${badgeClass} d-inline-block">${item.status}</div>
+          </div>
+        </div>`;
+      container.innerHTML += html;
+    });
+    document.getElementById('historyCard').style.display = 'block';
+  }
+
   function handleFile(input) {
     if (input.files && input.files[0]) {
       const file = input.files[0];
       fileName = file.name;
-      
-      // 壓縮圖片並轉 Base64
       const reader = new FileReader();
       reader.onload = function(e) {
-        const img = new Image();
-        img.src = e.target.result;
-        img.onload = function() {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          
-          // 簡單壓縮：寬度限制在 1000px
-          const maxWidth = 1000;
-          if (width > maxWidth) {
-            height *= maxWidth / width;
-            width = maxWidth;
-          }
-          
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-          
-          // 轉成 Base64 (JPEG, 品質 0.7)
-          base64Image = canvas.toDataURL('image/jpeg', 0.7);
-          
-          // 顯示預覽
-          document.getElementById('previewImg').src = base64Image;
-          document.getElementById('previewImg').style.display = 'block';
-          document.getElementById('placeholder').style.display = 'none';
-        }
+        base64Image = e.target.result;
+        document.getElementById('previewImg').src = base64Image;
+        document.getElementById('previewImg').style.display = 'block';
+        document.getElementById('placeholder').style.display = 'none';
       }
       reader.readAsDataURL(file);
     }
   }
 
-  // 送出資料到 GAS
   function submitData() {
     const name = document.getElementById('uName').value;
     const phone = document.getElementById('uPhone').value;
 
     if (!base64Image) return alert("⚠️ 請拍攝處方箋！");
-    if (!name) return alert("⚠️ 請輸入姓名！");
-    if (!phone) return alert("⚠️ 請輸入電話！");
+    if (!name || !phone) return alert("⚠️ 請填寫完整資料！");
 
-    // 顯示上傳中
     document.getElementById('loading').style.display = 'flex';
-    document.getElementById('loadingText').innerText = "正在上傳處方箋...";
+    document.getElementById('loadingText').innerText = "上傳中...";
 
-    // 準備資料
     const payload = {
       action: "upload",
       name: name,
       phone: phone,
-      notify: "LINE通知", // 強制設定為 LINE 通知
+      notify: "LINE通知",
       fileData: base64Image,
       fileName: fileName,
-      lineUserId: lineUserId, // 這裡會把 LIFF 抓到的 ID 傳給後端
-      dept: "Line上傳"
+      lineUserId: lineUserId,
+      dept: "前台上傳"
     };
 
-    // 使用 fetch 發送 (no-cors 模式避免跨域錯誤，但無法讀取回傳值)
-    // 改用 text/plain 繞過複雜請求
+    // 🔥 關鍵修正：直接送出，不加 headers，避開 CORS
     fetch(GAS_URL, {
       method: "POST",
       body: JSON.stringify(payload)
@@ -213,18 +196,18 @@
     .then(response => {
       document.getElementById('loading').style.display = 'none';
       if(response.status === 'success') {
-        alert("✅ 上傳成功！\n藥師會盡快處理。");
-        liff.closeWindow(); // 上傳完自動關閉視窗
+        alert("✅ 上傳成功！");
+        location.reload(); // 重整頁面以更新紀錄
       } else {
-        alert("❌ 上傳失敗：" + response.message);
+        alert("❌ 失敗：" + response.message);
       }
     })
     .catch(error => {
       document.getElementById('loading').style.display = 'none';
-      // 這裡如果出現錯誤，通常是因為 GAS 重定向問題，但資料通常已送達
-      // 我們檢查一下是否有成功
-      alert("上傳程序完成，請確認 LINE 是否收到通知。");
-      console.error(error);
+      // 這裡如果出現 SyntaxError 以外的錯誤，可能是網路問題
+      // 但如果是 GAS 重定向問題，通常代表資料已送出
+      alert("上傳完成 (請確認下方歷史紀錄)"); 
+      setTimeout(() => location.reload(), 2000);
     });
   }
 </script>
