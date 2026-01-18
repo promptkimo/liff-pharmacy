@@ -12,11 +12,9 @@
     .container { max-width: 600px; padding-top: 15px; }
     .card { border-radius: 12px; border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; }
     
-    /* 使用者資訊卡 */
     .user-card { background: white; padding: 15px; display: flex; align-items: center; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
     .user-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; margin-right: 15px; border: 2px solid #28a745; }
     
-    /* 上傳區 */
     .preview-box {
       width: 100%; height: 200px; background: #e9ecef; border: 2px dashed #ced4da;
       border-radius: 8px; display: flex; align-items: center; justify-content: center;
@@ -25,7 +23,6 @@
     .preview-box img { width: 100%; height: 100%; object-fit: contain; display: none; }
     .placeholder-text { color: #6c757d; text-align: center; font-size: 0.9rem; }
     
-    /* 歷史紀錄 */
     .history-item { display: flex; align-items: center; padding: 12px; border-bottom: 1px solid #f0f0f0; background: white; }
     .history-item:first-child { border-top-left-radius: 12px; border-top-right-radius: 12px; }
     .history-item:last-child { border-bottom: none; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; }
@@ -70,7 +67,7 @@
     <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleFile(this)">
 
     <div class="mb-3">
-      <label class="form-label small fw-bold">領藥人姓名</label>
+      <label class="form-label small fw-bold">領藥人姓名 (病人)</label>
       <input type="text" class="form-control" id="uName">
     </div>
     
@@ -104,13 +101,14 @@
 
 <script>
   // ==========================================
-  // ⚠️ 請務必填入您的資料
+  // ⚠️ 您的設定
   // ==========================================
   const GAS_URL = "https://script.google.com/macros/s/AKfycbyUXCejmkI52ZJVUN1K1t1j2ZvfdZMCgHsgB79okITgzn7to2sfte43R5I0GOQnFp1opQ/exec"; 
   const LIFF_ID = "2008912977-DuJTm5u1"; 
   // ==========================================
 
   let lineUserId = "";
+  let lineDisplayName = ""; // 🔥 新增：儲存 LINE 的原始暱稱
   let base64Image = "";
   let fileName = "";
 
@@ -125,11 +123,11 @@
       } else {
         liff.getProfile().then(profile => {
           lineUserId = profile.userId;
-          const name = profile.displayName;
+          lineDisplayName = profile.displayName; // 🔥 存下來
           const pic = profile.pictureUrl;
 
-          document.getElementById('userNameDisplay').innerText = name;
-          document.getElementById('uName').value = name;
+          document.getElementById('userNameDisplay').innerText = lineDisplayName;
+          document.getElementById('uName').value = lineDisplayName; // 預設帶入，但用戶可改成病人名
           if(pic) document.getElementById('userThumb').src = pic;
           document.getElementById('userInfo').style.display = 'flex';
           
@@ -202,11 +200,10 @@
   }
 
   function submitData() {
-    const name = document.getElementById('uName').value;
+    const name = document.getElementById('uName').value; // 病人姓名
     const phone = document.getElementById('uPhone').value;
     const dept = document.getElementById('uDept').value;
-    // 🔥 修改處：抓取使用者選擇的通知方式
-    const notify = document.getElementById('uNotify').value; 
+    const notify = document.getElementById('uNotify').value;
 
     if (!base64Image) return alert("⚠️ 請拍攝處方箋！");
     if (!name || !phone) return alert("⚠️ 請填寫完整資料！");
@@ -216,10 +213,11 @@
 
     const payload = {
       action: "upload",
-      name: name,
+      name: name, // 病人姓名 (B)
+      lineName: lineDisplayName, // 🔥 LINE 暱稱 (A)
       phone: phone,
       dept: dept,
-      notify: notify, // 傳送選擇的通知方式
+      notify: notify,
       fileData: base64Image,
       fileName: fileName,
       lineUserId: lineUserId
