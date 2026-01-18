@@ -30,8 +30,8 @@
     .history-item:first-child { border-top-left-radius: 12px; border-top-right-radius: 12px; }
     .history-item:last-child { border-bottom: none; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; }
     .status-badge { font-size: 0.75rem; padding: 3px 8px; border-radius: 10px; font-weight: bold; }
-    .status-pending { background: #ffeeba; color: #856404; } /* 待處理 (黃) */
-    .status-ready { background: #d1e7dd; color: #0f5132; }   /* 可領藥 (綠) */
+    .status-pending { background: #ffeeba; color: #856404; } /* 待處理 */
+    .status-ready { background: #d1e7dd; color: #0f5132; }   /* 可領藥 */
     .history-thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; background: #eee; margin-right: 15px; border: 1px solid #ddd; }
 
     #loading {
@@ -79,18 +79,8 @@
     </div>
     
     <div class="mb-4">
-      <label class="form-label small fw-bold">科別</label>
-      <select class="form-select" id="uDept">
-        <option value="內科">內科</option>
-        <option value="牙科">牙科</option>
-        <option value="兒科">兒科</option>
-        <option value="耳鼻喉科">耳鼻喉科</option>
-        <option value="眼科">眼科</option>
-        <option value="皮膚科">皮膚科</option>
-        <option value="婦產科">婦產科</option>
-        <option value="家醫科">家醫科</option>
-        <option value="其他">其他</option>
-      </select>
+      <label class="form-label small fw-bold">科別 (選填)</label>
+      <input type="text" class="form-control" id="uDept" placeholder="例如：牙科、內科...">
     </div>
 
     <button class="btn btn-success w-100 fw-bold py-2" onclick="submitData()">確認送出</button>
@@ -105,12 +95,9 @@
 
 <script>
   // ==========================================
-  // ⚠️ 請務必填入最新的資料
+  // ⚠️ 資料區 (請確認是否正確)
   // ==========================================
-  // 1. 剛剛部署新版本的網址 (結尾是 /exec)
   const GAS_URL = "https://script.google.com/macros/s/AKfycbyUXCejmkI52ZJVUN1K1t1j2ZvfdZMCgHsgB79okITgzn7to2sfte43R5I0GOQnFp1opQ/exec"; 
-  
-  // 2. 您的 LIFF ID
   const LIFF_ID = "2008912977-DuJTm5u1"; 
   // ==========================================
 
@@ -125,32 +112,29 @@
   function initLiff() {
     liff.init({ liffId: LIFF_ID }).then(() => {
       if (!liff.isLoggedIn()) {
-        liff.login(); // 強制登入
+        liff.login(); 
       } else {
         liff.getProfile().then(profile => {
           lineUserId = profile.userId;
           const name = profile.displayName;
           const pic = profile.pictureUrl;
 
-          // 顯示使用者資訊
           document.getElementById('userNameDisplay').innerText = name;
-          document.getElementById('uName').value = name; // 自動帶入姓名
+          document.getElementById('uName').value = name;
           if(pic) document.getElementById('userThumb').src = pic;
           document.getElementById('userInfo').style.display = 'flex';
           
           document.getElementById('loading').style.display = 'none';
           
-          // 🔥 登入成功後，立刻抓取歷史紀錄
           loadHistory();
         });
       }
     }).catch(err => {
-      alert("LIFF 錯誤：" + err);
+      // alert("LIFF 錯誤：" + err); // 暫時關閉錯誤提示以免干擾
       document.getElementById('loading').style.display = 'none';
     });
   }
 
-  // 讀取歷史紀錄
   function loadHistory() {
     fetch(GAS_URL, {
       method: "POST",
@@ -159,7 +143,7 @@
     .then(res => res.json())
     .then(data => {
       const container = document.getElementById('historyList');
-      container.innerHTML = ""; // 清空
+      container.innerHTML = "";
 
       if(data.status === 'success' && data.history.length > 0) {
         data.history.forEach(item => {
@@ -169,7 +153,7 @@
               <img src="${item.img}" class="history-thumb">
               <div style="flex-grow:1;">
                 <div class="d-flex justify-content-between">
-                  <span class="fw-bold text-dark">${item.dept || '處方箋'}</span>
+                  <span class="fw-bold text-dark">${item.dept || '一般'}</span>
                   <span class="status-badge ${badgeClass}">${item.status}</span>
                 </div>
                 <div class="small text-muted mt-1">${item.date}</div>
@@ -190,20 +174,16 @@
       fileName = file.name;
       const reader = new FileReader();
       reader.onload = function(e) {
-        // 簡易圖片壓縮
         const img = new Image();
         img.src = e.target.result;
         img.onload = function() {
           const canvas = document.createElement('canvas');
           let w = img.width, h = img.height;
-          // 限制最大寬度 800px (加速上傳)
           if(w > 800) { h *= 800/w; w = 800; }
           canvas.width = w; canvas.height = h;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, w, h);
-          
-          base64Image = canvas.toDataURL('image/jpeg', 0.7); // 壓縮品質 0.7
-          
+          base64Image = canvas.toDataURL('image/jpeg', 0.7);
           document.getElementById('previewImg').src = base64Image;
           document.getElementById('previewImg').style.display = 'block';
           document.getElementById('placeholder').style.display = 'none';
@@ -216,7 +196,7 @@
   function submitData() {
     const name = document.getElementById('uName').value;
     const phone = document.getElementById('uPhone').value;
-    const dept = document.getElementById('uDept').value; // 取得科別
+    const dept = document.getElementById('uDept').value; // 取得手動輸入的科別
 
     if (!base64Image) return alert("⚠️ 請拍攝處方箋！");
     if (!name || !phone) return alert("⚠️ 請填寫完整資料！");
@@ -228,7 +208,7 @@
       action: "upload",
       name: name,
       phone: phone,
-      dept: dept, // 傳送科別
+      dept: dept,
       notify: "LINE通知",
       fileData: base64Image,
       fileName: fileName,
@@ -244,14 +224,14 @@
       document.getElementById('loading').style.display = 'none';
       if(response.status === 'success') {
         alert("✅ 上傳成功！");
-        location.reload(); // 重整看紀錄
+        location.reload();
       } else {
         alert("❌ 失敗：" + response.message);
       }
     })
     .catch(error => {
       document.getElementById('loading').style.display = 'none';
-      alert("傳送完畢，請確認下方紀錄。");
+      alert("上傳完成，請確認下方紀錄。");
       setTimeout(() => location.reload(), 2000);
     });
   }
