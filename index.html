@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>處方箋快傳</title>
+  <title>藥局服務系統</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   
@@ -23,9 +23,10 @@
     .preview-box img { width: 100%; height: 100%; object-fit: contain; display: none; }
     .placeholder-text { color: #6c757d; text-align: center; font-size: 0.9rem; }
     
+    .hidden-mode { display: none !important; } /* 隱藏模式 */
+
     .history-item { display: flex; align-items: center; padding: 12px; border-bottom: 1px solid #f0f0f0; background: white; }
-    .history-item:first-child { border-top-left-radius: 12px; border-top-right-radius: 12px; }
-    .history-item:last-child { border-bottom: none; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; }
+    .history-item:last-child { border-bottom: none; }
     .status-badge { font-size: 0.75rem; padding: 3px 8px; border-radius: 10px; font-weight: bold; }
     .status-pending { background: #ffeeba; color: #856404; }
     .status-ready { background: #d1e7dd; color: #0f5132; }
@@ -56,15 +57,17 @@
   </div>
 
   <div class="card p-4">
-    <h5 class="fw-bold text-success mb-3"><i class="bi bi-camera"></i> 上傳處方箋</h5>
+    <h5 class="fw-bold text-success mb-3" id="formTitle"><i class="bi bi-camera"></i> 上傳處方箋</h5>
     
-    <div class="preview-box" onclick="document.getElementById('fileInput').click()">
-      <div class="placeholder-text" id="placeholder">
-        <span style="font-size: 2rem;">📷</span><br>點此拍照 / 選照片
-      </div>
-      <img id="previewImg">
+    <div id="cameraSection">
+        <div class="preview-box" onclick="document.getElementById('fileInput').click()">
+        <div class="placeholder-text" id="placeholder">
+            <span style="font-size: 2rem;">📷</span><br>點此拍照 / 選照片
+        </div>
+        <img id="previewImg">
+        </div>
+        <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleFile(this)">
     </div>
-    <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleFile(this)">
 
     <div class="mb-3">
       <label class="form-label small fw-bold">領藥人姓名 (病人)</label>
@@ -92,9 +95,11 @@
     <button class="btn btn-success w-100 fw-bold py-2" onclick="submitData()">確認送出</button>
   </div>
 
-  <h6 class="fw-bold text-muted ms-2 mb-2"><i class="bi bi-clock-history"></i> 上傳紀錄 (最近5筆)</h6>
-  <div id="historyList">
-    <div class="text-center py-4 text-muted small">載入中...</div>
+  <div id="historySection">
+      <h6 class="fw-bold text-muted ms-2 mb-2"><i class="bi bi-clock-history"></i> 上傳紀錄 (最近5筆)</h6>
+      <div id="historyList">
+        <div class="text-center py-4 text-muted small">載入中...</div>
+      </div>
   </div>
 
 </div>
@@ -108,13 +113,27 @@
   // ==========================================
 
   let lineUserId = "";
-  let lineDisplayName = ""; // 🔥 新增：儲存 LINE 的原始暱稱
+  let lineDisplayName = "";
   let base64Image = "";
   let fileName = "";
+  
+  // 🔥 偵測網址參數：是否為現場登記模式
+  const urlParams = new URLSearchParams(window.location.search);
+  const isRegisterMode = urlParams.get('mode') === 'register';
 
   window.onload = function() {
+    initInterface(); // 初始化介面
     initLiff();
   };
+
+  function initInterface() {
+    if (isRegisterMode) {
+      // 現場登記模式：隱藏拍照、修改標題、隱藏歷史
+      document.getElementById('cameraSection').classList.add('hidden-mode');
+      document.getElementById('historySection').classList.add('hidden-mode');
+      document.getElementById('formTitle').innerHTML = '<i class="bi bi-person-check-fill"></i> 現場領藥登記';
+    }
+  }
 
   function initLiff() {
     liff.init({ liffId: LIFF_ID }).then(() => {
@@ -123,17 +142,16 @@
       } else {
         liff.getProfile().then(profile => {
           lineUserId = profile.userId;
-          lineDisplayName = profile.displayName; // 🔥 存下來
+          lineDisplayName = profile.displayName;
           const pic = profile.pictureUrl;
 
           document.getElementById('userNameDisplay').innerText = lineDisplayName;
-          document.getElementById('uName').value = lineDisplayName; // 預設帶入，但用戶可改成病人名
+          document.getElementById('uName').value = lineDisplayName; 
           if(pic) document.getElementById('userThumb').src = pic;
           document.getElementById('userInfo').style.display = 'flex';
-          
           document.getElementById('loading').style.display = 'none';
           
-          loadHistory();
+          if(!isRegisterMode) loadHistory(); // 只有一般模式才讀歷史
         });
       }
     }).catch(err => {
@@ -150,13 +168,12 @@
     .then(data => {
       const container = document.getElementById('historyList');
       container.innerHTML = "";
-
       if(data.status === 'success' && data.history.length > 0) {
         data.history.forEach(item => {
           let badgeClass = item.status === '可領藥' ? 'status-ready' : 'status-pending';
           let html = `
             <div class="history-item">
-              <img src="${item.img}" class="history-thumb">
+              <img src="${item.img}" class="history-thumb" onerror="this.src='https://placehold.co/60?text=Rx'">
               <div style="flex-grow:1;">
                 <div class="d-flex justify-content-between">
                   <span class="fw-bold text-dark">${item.dept || '一般'}</span>
@@ -200,27 +217,30 @@
   }
 
   function submitData() {
-    const name = document.getElementById('uName').value; // 病人姓名
+    const name = document.getElementById('uName').value;
     const phone = document.getElementById('uPhone').value;
     const dept = document.getElementById('uDept').value;
     const notify = document.getElementById('uNotify').value;
 
-    if (!base64Image) return alert("⚠️ 請拍攝處方箋！");
+    // 🔥 檢查：如果不是現場登記模式，才強制要有圖片
+    if (!isRegisterMode && !base64Image) return alert("⚠️ 請拍攝處方箋！");
+    
     if (!name || !phone) return alert("⚠️ 請填寫完整資料！");
 
     document.getElementById('loading').style.display = 'flex';
-    document.getElementById('loadingText').innerText = "資料上傳中...";
+    document.getElementById('loadingText').innerText = "資料傳送中...";
 
     const payload = {
       action: "upload",
-      name: name, // 病人姓名 (B)
-      lineName: lineDisplayName, // 🔥 LINE 暱稱 (A)
+      name: name, 
+      lineName: lineDisplayName, 
       phone: phone,
-      dept: dept,
+      dept: dept || "現場登記", // 若沒填科別，預設為現場
       notify: notify,
-      fileData: base64Image,
+      fileData: base64Image, // 現場模式下這會是空的
       fileName: fileName,
-      lineUserId: lineUserId
+      lineUserId: lineUserId,
+      isRegister: isRegisterMode // 告訴後端這是純登記
     };
 
     fetch(GAS_URL, {
@@ -231,16 +251,19 @@
     .then(response => {
       document.getElementById('loading').style.display = 'none';
       if(response.status === 'success') {
-        alert("✅ 上傳成功！");
-        location.reload();
+        alert("✅ 登記成功！\n藥師確認後會發送通知。");
+        // 如果是現場登記，可以選擇關閉視窗或重整
+        if(isRegisterMode) liff.closeWindow(); 
+        else location.reload();
       } else {
         alert("❌ 失敗：" + response.message);
       }
     })
     .catch(error => {
       document.getElementById('loading').style.display = 'none';
-      alert("上傳完成，請確認下方紀錄。");
-      setTimeout(() => location.reload(), 2000);
+      alert("傳送完成。");
+      if(isRegisterMode) liff.closeWindow();
+      else location.reload();
     });
   }
 </script>
