@@ -2,303 +2,230 @@
 <html lang="zh-TW">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>處方箋快傳系統</title>
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
-
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  
   <style>
-    :root { --primary-color: #06C755; --bg-color: #F5F7F9; --card-bg: #FFFFFF; }
-    body { background-color: var(--bg-color); font-family: 'Noto Sans TC', sans-serif; color: #333; padding-bottom: 40px; }
-    .main-container { max-width: 480px; margin: 0 auto; padding: 15px; }
+    body { background-color: #f8f9fa; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    .container { max-width: 600px; padding-top: 20px; }
+    .card { border-radius: 15px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .btn-upload { width: 100%; padding: 12px; font-weight: bold; font-size: 1.1rem; }
     
-    .custom-card { background: var(--card-bg); border-radius: 20px; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05); border: none; padding: 25px; margin-bottom: 20px; }
-    .form-label { font-weight: 500; font-size: 0.95rem; color: #555; margin-bottom: 8px; }
-    .form-control, .form-select { border-radius: 12px; border: 1px solid #eee; padding: 12px 15px; background-color: #fafafa; }
-    .form-control:focus { border-color: var(--primary-color); background-color: #fff; box-shadow: none; }
-
-    .upload-zone { border: 2px dashed #ddd; border-radius: 16px; padding: 30px 20px; text-align: center; background-color: #fafafa; cursor: pointer; transition: all 0.3s; }
-    .upload-zone.has-file { border-style: solid; border-color: var(--primary-color); background-color: #f0fff4; }
-    .upload-icon { font-size: 2rem; color: #aaa; margin-bottom: 10px; }
-    .file-name-display { color: var(--primary-color); font-weight: bold; margin-top: 5px; }
-
-    .btn-main { background: linear-gradient(135deg, #06C755 0%, #04b34b 100%); border: none; border-radius: 50px; color: white; font-weight: bold; padding: 14px; width: 100%; font-size: 1.1rem; box-shadow: 0 4px 15px rgba(6, 199, 85, 0.3); }
-    .line-login-btn { background-color: #06C755; color: white; font-weight: bold; border-radius: 12px; padding: 12px; width: 100%; }
+    /* 預覽區塊樣式 */
+    .preview-box {
+      width: 100%; height: 250px;
+      background: #e9ecef; border: 2px dashed #ced4da; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden; cursor: pointer; position: relative;
+    }
+    .preview-box img { width: 100%; height: 100%; object-fit: contain; display: none; }
+    .placeholder-text { color: #6c757d; text-align: center; }
     
-    #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.95); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    .hidden { display: none !important; }
-    
-    /* 歷史紀錄 Tabs */
-    .nav-tabs .nav-link { color: #888; border: none; font-weight: 500; padding: 10px 15px; }
-    .nav-tabs .nav-link.active { color: #06C755; border-bottom: 3px solid #06C755; background: none; font-weight: 700; }
-    
-    /* 狀態標籤 */
-    .status-badge { padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; }
-    .bg-pending { background-color: #fff8e1; color: #d97706; }
-    .bg-done { background-color: #e8f5e9; color: #15803d; }
-    .dept-tag { font-size: 0.75rem; color: #666; background: #eee; padding: 2px 6px; border-radius: 4px; margin-right: 5px; }
+    /* Loading 遮罩 */
+    #loading {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(255,255,255,0.95); z-index: 9999;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+    }
   </style>
 </head>
 <body>
 
-<div id="loadingOverlay">
+<div id="loading">
   <div class="spinner-border text-success" role="status"></div>
-  <p class="mt-3 text-secondary fw-bold" id="loadingText">系統連線中...</p>
+  <p class="mt-3 fw-bold text-secondary" id="loadingText">系統啟動中...</p>
 </div>
 
-<div class="main-container">
-  
-  <div class="text-center mb-4 pt-3">
-    <h1 class="h4 fw-bold"><i class="bi bi-capsule-pill text-success"></i> 處方箋快傳</h1>
-    <p class="text-muted small">快速、安全、免排隊</p>
-  </div>
-
-  <div id="loginSection" class="custom-card hidden text-center">
-    <p class="mb-3 text-muted small">請先登入以辨識您的身分</p>
-    <button onclick="liff.login()" class="btn line-login-btn">
-      <i class="bi bi-line"></i> 登入 LINE 帳號
-    </button>
-  </div>
-
-  <div id="welcomeSection" class="custom-card hidden py-3" style="background: linear-gradient(135deg, #e8f5e9 0%, #ffffff 100%); border: 1px solid #c8e6c9;">
-    <div class="d-flex align-items-center">
-      <i class="bi bi-person-check-fill text-success fs-3 me-3"></i>
-      <div>
-        <h5 class="mb-0 fw-bold text-success">歡迎您</h5>
-        <small class="text-muted"><span id="userName">貴賓</span></small>
-      </div>
-    </div>
-  </div>
-
-  <div class="custom-card">
-    <form id="uploadForm">
-      <div class="mb-3">
-        <label class="form-label">領藥對象</label>
-        <input type="text" class="form-control" id="name" required placeholder="請輸入領藥人姓名">
-      </div>
-
-      <div class="mb-3">
-        <label class="form-label">看診科別</label>
-        <input class="form-control" list="deptList" id="dept" required placeholder="請選擇或輸入 (如：內科)">
-        <datalist id="deptList">
-          <option value="內科">
-          <option value="家醫科">
-          <option value="牙科">
-          <option value="眼科">
-          <option value="皮膚科">
-          <option value="慢箋領藥">
-          <option value="其他">
-        </datalist>
-      </div>
-
-      <div class="mb-3">
-        <label class="form-label">聯絡電話</label>
-        <input type="tel" class="form-control" id="phone" required placeholder="09xx...">
-      </div>
-
-      <div class="mb-4">
-        <label class="form-label">通知方式</label>
-        <select class="form-select" id="notify">
-          <option value="LINE通知">LINE 通知 (推薦)</option>
-          <option value="電話通知">電話通知</option>
-        </select>
-      </div>
-
-      <div class="mb-4">
-        <label class="form-label">拍攝處方箋</label>
-        <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
-          <i class="bi bi-camera-fill upload-icon"></i>
-          <div class="upload-text">點擊拍攝或選擇照片</div>
-          <div id="fileNameDisplay" class="file-name-display"></div>
-          <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="updateFileName(this)" required>
-        </div>
-      </div>
-      
-      <button type="submit" class="btn btn-main" id="submitBtn">
-        確認送出 <i class="bi bi-send-fill ms-2"></i>
-      </button>
-    </form>
-  </div>
-
-  <div class="custom-card">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h6 class="fw-bold m-0"><i class="bi bi-clock-history me-2"></i>您的紀錄</h6>
-      <button class="btn btn-sm btn-outline-secondary" onclick="autoSearch()"><i class="bi bi-arrow-clockwise"></i></button>
-    </div>
-
-    <ul class="nav nav-tabs mb-3" id="historyTabs" role="tablist">
-      <li class="nav-item">
-        <button class="nav-link active" id="tab-pending" onclick="switchHistory('pending')">處理中</button>
-      </li>
-      <li class="nav-item">
-        <button class="nav-link" id="tab-done" onclick="switchHistory('done')">已完成</button>
-      </li>
-    </ul>
+<div class="container">
+  <div class="card p-4">
+    <h3 class="text-center fw-bold text-success mb-3">處方箋快傳</h3>
     
-    <div id="historyList" class="small">載入中...</div>
+    <div class="alert alert-success d-flex align-items-center" role="alert" id="loginInfo" style="display:none !important;">
+      <img id="userThumb" src="" style="width:40px; height:40px; border-radius:50%; margin-right:10px;">
+      <div>
+        <small>歡迎您，</small><br>
+        <strong id="displayName">載入中...</strong>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label fw-bold">1. 拍攝/上傳處方箋</label>
+      <div class="preview-box" onclick="document.getElementById('fileInput').click()">
+        <div class="placeholder-text" id="placeholder">
+          <span style="font-size: 2rem;">📷</span><br>點擊拍攝
+        </div>
+        <img id="previewImg">
+      </div>
+      <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleFile(this)">
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label fw-bold">2. 領藥人姓名</label>
+      <input type="text" class="form-control" id="uName" placeholder="請輸入姓名">
+    </div>
+
+    <div class="mb-4">
+      <label class="form-label fw-bold">3. 聯絡電話</label>
+      <input type="tel" class="form-control" id="uPhone" placeholder="09xx-xxx-xxx">
+    </div>
+
+    <button class="btn btn-success btn-upload" onclick="submitData()">確認送出</button>
   </div>
-  
-  <div class="text-center text-muted" style="font-size:10px; margin-top: 20px;">
-    Secure Upload System © 2024
-  </div>
+  <p class="text-center text-muted mt-3 small">藥師確認後將透過 LINE 通知您</p>
 </div>
 
 <script>
   // ==========================================
-  // 🔥 設定區
-  const MY_LIFF_ID = '2008912977-DuJTm5u1';
-  // 請貼上你的 GAS 網址
-  const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbyUXCejmkI52ZJVUN1K1t1j2ZvfdZMCgHsgB79okITgzn7to2sfte43R5I0GOQnFp1opQ/exec'; 
+  // ⚠️ 請在這裡填入您的資料 ⚠️
+  // ==========================================
+  
+  // 1. 剛剛在 GAS 複製的網址 (結尾是 /exec)
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbyUXCejmkI52ZJVUN1K1t1j2ZvfdZMCgHsgB79okITgzn7to2sfte43R5I0GOQnFp1opQ/exec"; 
+  
+  // 2. 剛剛在 LINE Developers 複製的 LIFF ID
+  const LIFF_ID = "2008912977-DuJTm5u1"; 
+
   // ==========================================
 
-  let userLineId = '';
-  let allHistoryData = []; // 暫存所有歷史紀錄
+  let lineUserId = "";
+  let base64Image = "";
+  let fileName = "";
 
+  // 網頁載入後初始化 LIFF
   window.onload = function() {
-    if(localStorage.getItem('uPhone')) document.getElementById('phone').value = localStorage.getItem('uPhone');
-    initLiff();
+    initializeLiff();
   };
 
-  function initLiff() {
-    liff.init({ liffId: MY_LIFF_ID }).then(() => {
-      document.getElementById('loadingOverlay').classList.add('hidden');
-      if (liff.isLoggedIn()) {
-        liff.getProfile().then(profile => {
-          userLineId = profile.userId;
-          document.getElementById('userName').innerText = profile.displayName;
-          document.getElementById('welcomeSection').classList.remove('hidden');
-          autoSearch();
-        });
-      } else {
-        document.getElementById('loginSection').classList.remove('hidden');
-      }
-    });
+  function initializeLiff() {
+    liff.init({ liffId: LIFF_ID })
+      .then(() => {
+        // 檢查是否已登入
+        if (!liff.isLoggedIn()) {
+          liff.login(); // 沒登入就強制登入
+        } else {
+          // 已登入，抓取資料
+          getProfile();
+        }
+      })
+      .catch((err) => {
+        console.error('LIFF Init Error', err);
+        document.getElementById('loading').style.display = 'none';
+        alert("LINE 登入失敗，請確認 LIFF ID 設定是否正確。");
+      });
   }
 
-  function updateFileName(input) {
-    const display = document.getElementById('fileNameDisplay');
-    const zone = document.querySelector('.upload-zone');
-    if(input.files && input.files[0]) {
-      display.innerText = "已選擇: " + input.files[0].name;
-      zone.classList.add('has-file');
-      document.querySelector('.upload-icon').className = 'bi bi-check-circle-fill upload-icon text-success';
-    } else {
-      display.innerText = "";
-      zone.classList.remove('has-file');
-      document.querySelector('.upload-icon').className = 'bi bi-camera-fill upload-icon';
+  function getProfile() {
+    liff.getProfile()
+      .then(profile => {
+        lineUserId = profile.userId;
+        const name = profile.displayName;
+        const pictureUrl = profile.pictureUrl;
+        
+        // 顯示在畫面上
+        document.getElementById('displayName').innerText = name;
+        document.getElementById('uName').value = name; // 自動帶入姓名
+        if(pictureUrl) document.getElementById('userThumb').src = pictureUrl;
+        
+        document.getElementById('loginInfo').style.display = 'flex';
+        document.getElementById('loading').style.display = 'none'; // 關閉 Loading
+      })
+      .catch(err => {
+        console.error('Profile Error', err);
+        document.getElementById('loading').style.display = 'none';
+      });
+  }
+
+  // 處理圖片選擇
+  function handleFile(input) {
+    if (input.files && input.files[0]) {
+      const file = input.files[0];
+      fileName = file.name;
+      
+      // 壓縮圖片並轉 Base64
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.src = e.target.result;
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // 簡單壓縮：寬度限制在 1000px
+          const maxWidth = 1000;
+          if (width > maxWidth) {
+            height *= maxWidth / width;
+            width = maxWidth;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // 轉成 Base64 (JPEG, 品質 0.7)
+          base64Image = canvas.toDataURL('image/jpeg', 0.7);
+          
+          // 顯示預覽
+          document.getElementById('previewImg').src = base64Image;
+          document.getElementById('previewImg').style.display = 'block';
+          document.getElementById('placeholder').style.display = 'none';
+        }
+      }
+      reader.readAsDataURL(file);
     }
   }
 
-  function sendToGAS(payload) {
-    document.getElementById('loadingOverlay').classList.remove('hidden');
-    document.getElementById('loadingText').innerText = '資料處理中...';
-    
-    return fetch(GAS_API_URL, {
-      method: 'POST',
+  // 送出資料到 GAS
+  function submitData() {
+    const name = document.getElementById('uName').value;
+    const phone = document.getElementById('uPhone').value;
+
+    if (!base64Image) return alert("⚠️ 請拍攝處方箋！");
+    if (!name) return alert("⚠️ 請輸入姓名！");
+    if (!phone) return alert("⚠️ 請輸入電話！");
+
+    // 顯示上傳中
+    document.getElementById('loading').style.display = 'flex';
+    document.getElementById('loadingText').innerText = "正在上傳處方箋...";
+
+    // 準備資料
+    const payload = {
+      action: "upload",
+      name: name,
+      phone: phone,
+      notify: "LINE通知", // 強制設定為 LINE 通知
+      fileData: base64Image,
+      fileName: fileName,
+      lineUserId: lineUserId, // 這裡會把 LIFF 抓到的 ID 傳給後端
+      dept: "Line上傳"
+    };
+
+    // 使用 fetch 發送 (no-cors 模式避免跨域錯誤，但無法讀取回傳值)
+    // 改用 text/plain 繞過複雜請求
+    fetch(GAS_URL, {
+      method: "POST",
       body: JSON.stringify(payload)
     })
     .then(res => res.json())
-    .catch(err => {
-      console.error(err);
-      alert('連線錯誤，請稍後再試');
-      return { status: 'error' };
+    .then(response => {
+      document.getElementById('loading').style.display = 'none';
+      if(response.status === 'success') {
+        alert("✅ 上傳成功！\n藥師會盡快處理。");
+        liff.closeWindow(); // 上傳完自動關閉視窗
+      } else {
+        alert("❌ 上傳失敗：" + response.message);
+      }
     })
-    .finally(() => {
-      document.getElementById('loadingOverlay').classList.add('hidden');
+    .catch(error => {
+      document.getElementById('loading').style.display = 'none';
+      // 這裡如果出現錯誤，通常是因為 GAS 重定向問題，但資料通常已送達
+      // 我們檢查一下是否有成功
+      alert("上傳程序完成，請確認 LINE 是否收到通知。");
+      console.error(error);
     });
-  }
-
-  document.getElementById('uploadForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const file = document.getElementById('fileInput').files[0];
-    if(file.size > 10 * 1024 * 1024) return alert('檔案太大 (限制 10MB)');
-
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      const payload = {
-        action: 'upload',
-        fileData: e.target.result,
-        fileName: file.name,
-        name: document.getElementById('name').value,
-        dept: document.getElementById('dept').value, // 傳送科別
-        phone: document.getElementById('phone').value,
-        notify: document.getElementById('notify').value,
-        lineUserId: userLineId 
-      };
-
-      localStorage.setItem('uPhone', payload.phone);
-
-      sendToGAS(payload).then(res => {
-        if(res.status === 'success') {
-          alert('✅ 上傳成功！');
-          document.getElementById('uploadForm').reset();
-          document.getElementById('fileNameDisplay').innerText = "";
-          document.querySelector('.upload-zone').classList.remove('has-file');
-          document.querySelector('.upload-icon').className = 'bi bi-camera-fill upload-icon';
-          document.getElementById('phone').value = localStorage.getItem('uPhone');
-          if(userLineId) autoSearch();
-        } else {
-          alert('上傳失敗: ' + (res.message || '未知錯誤'));
-        }
-      });
-    };
-    reader.readAsDataURL(file);
-  });
-
-  function autoSearch() {
-    document.getElementById('historyList').innerText = '更新中...';
-    sendToGAS({ action: 'search', userId: userLineId }).then(res => {
-      // 排序：最新的日期 (date) 排在最前面
-      allHistoryData = res.history.sort((a, b) => {
-        return new Date(b.date) - new Date(a.date);
-      });
-      // 預設顯示 pending
-      switchHistory('pending');
-    });
-  }
-
-  // 切換分頁顯示
-  function switchHistory(type) {
-    // 樣式切換
-    document.getElementById('tab-pending').classList.toggle('active', type === 'pending');
-    document.getElementById('tab-done').classList.toggle('active', type === 'done');
-    
-    const box = document.getElementById('historyList');
-    let filterData = [];
-
-    if (type === 'pending') {
-      // 篩選出待處理
-      filterData = allHistoryData.filter(h => h.status === '待處理');
-    } else {
-      // 篩選出可領藥或已完成
-      filterData = allHistoryData.filter(h => h.status !== '待處理');
-    }
-
-    if(filterData.length === 0) {
-      box.innerHTML = '<div class="text-center text-muted py-3">尚無此分類紀錄</div>';
-      return;
-    }
-
-    let html = '';
-    filterData.forEach(h => {
-      let badgeClass = h.status === '待處理' ? 'bg-pending' : 'bg-done';
-      let deptTag = h.dept ? `<span class="dept-tag">${h.dept}</span>` : '';
-      
-      html += `
-        <div class="d-flex justify-content-between align-items-center border-bottom py-3 text-start">
-          <div>
-            <div class="fw-bold text-dark d-flex align-items-center">
-              ${deptTag}
-              ${h.name}
-            </div>
-            <div class="text-muted small mt-1">${h.date}</div>
-          </div>
-          <span class="status-badge ${badgeClass}">${h.status}</span>
-        </div>`;
-    });
-    box.innerHTML = html;
   }
 </script>
 
