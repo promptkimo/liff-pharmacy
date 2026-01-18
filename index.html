@@ -3,36 +3,40 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>處方箋快傳系統</title>
+  <title>處方箋快傳</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   
   <style>
-    body { background-color: #f0f2f5; font-family: -apple-system, sans-serif; padding-bottom: 50px; }
-    .container { max-width: 600px; padding-top: 20px; }
+    body { background-color: #f0f2f5; font-family: -apple-system, sans-serif; padding-bottom: 60px; }
+    .container { max-width: 600px; padding-top: 15px; }
     .card { border-radius: 12px; border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; }
+    
+    /* 使用者資訊卡 */
+    .user-card { background: white; padding: 15px; display: flex; align-items: center; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+    .user-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; margin-right: 15px; border: 2px solid #28a745; }
     
     /* 上傳區 */
     .preview-box {
-      width: 100%; height: 220px; background: #e9ecef; border: 2px dashed #ced4da;
+      width: 100%; height: 200px; background: #e9ecef; border: 2px dashed #ced4da;
       border-radius: 8px; display: flex; align-items: center; justify-content: center;
-      overflow: hidden; cursor: pointer; position: relative;
+      overflow: hidden; cursor: pointer; position: relative; margin-bottom: 15px;
     }
     .preview-box img { width: 100%; height: 100%; object-fit: contain; display: none; }
     .placeholder-text { color: #6c757d; text-align: center; font-size: 0.9rem; }
     
-    /* 歷史紀錄區 */
-    .history-item { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
-    .history-item:last-child { border-bottom: none; }
-    .status-badge { font-size: 0.8rem; padding: 4px 8px; border-radius: 4px; }
-    .status-pending { background: #fff3cd; color: #856404; }
-    .status-ready { background: #d1e7dd; color: #0f5132; }
-    .history-thumb { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; background: #eee; margin-right: 10px; }
+    /* 歷史紀錄 */
+    .history-item { display: flex; align-items: center; padding: 12px; border-bottom: 1px solid #f0f0f0; background: white; }
+    .history-item:first-child { border-top-left-radius: 12px; border-top-right-radius: 12px; }
+    .history-item:last-child { border-bottom: none; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; }
+    .status-badge { font-size: 0.75rem; padding: 3px 8px; border-radius: 10px; font-weight: bold; }
+    .status-pending { background: #ffeeba; color: #856404; } /* 待處理 (黃) */
+    .status-ready { background: #d1e7dd; color: #0f5132; }   /* 可領藥 (綠) */
+    .history-thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; background: #eee; margin-right: 15px; border: 1px solid #ddd; }
 
-    /* Loading */
     #loading {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(255,255,255,0.9); z-index: 9999;
+      background: rgba(255,255,255,0.95); z-index: 9999;
       display: flex; flex-direction: column; justify-content: center; align-items: center;
     }
   </style>
@@ -46,45 +50,68 @@
 
 <div class="container">
   
-  <div class="card p-4">
-    <h4 class="text-center fw-bold text-success mb-3"><i class="bi bi-camera"></i> 處方箋快傳</h4>
-    
-    <div class="mb-3">
-      <div class="preview-box" onclick="document.getElementById('fileInput').click()">
-        <div class="placeholder-text" id="placeholder">
-          <span style="font-size: 2rem;">📷</span><br>點擊拍攝 / 選擇照片
-        </div>
-        <img id="previewImg">
-      </div>
-      <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleFile(this)">
+  <div class="user-card" id="userInfo" style="display: none;">
+    <img id="userThumb" src="https://placehold.co/50?text=U" class="user-avatar">
+    <div>
+      <div class="small text-muted">歡迎使用</div>
+      <div class="fw-bold fs-5" id="userNameDisplay">訪客</div>
     </div>
-
-    <div class="mb-3">
-      <label class="form-label small fw-bold text-muted">領藥人姓名</label>
-      <input type="text" class="form-control" id="uName">
-    </div>
-    <div class="mb-4">
-      <label class="form-label small fw-bold text-muted">聯絡電話</label>
-      <input type="tel" class="form-control" id="uPhone">
-    </div>
-
-    <button class="btn btn-success w-100 py-2 fw-bold" onclick="submitData()">確認送出</button>
   </div>
 
-  <div class="card p-3" id="historyCard" style="display: none;">
-    <h6 class="fw-bold text-muted mb-3">📋 最近上傳紀錄</h6>
-    <div id="historyList">
+  <div class="card p-4">
+    <h5 class="fw-bold text-success mb-3"><i class="bi bi-camera"></i> 上傳處方箋</h5>
+    
+    <div class="preview-box" onclick="document.getElementById('fileInput').click()">
+      <div class="placeholder-text" id="placeholder">
+        <span style="font-size: 2rem;">📷</span><br>點此拍照 / 選照片
       </div>
+      <img id="previewImg">
+    </div>
+    <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleFile(this)">
+
+    <div class="mb-3">
+      <label class="form-label small fw-bold">領藥人姓名</label>
+      <input type="text" class="form-control" id="uName">
+    </div>
+    <div class="mb-3">
+      <label class="form-label small fw-bold">聯絡電話</label>
+      <input type="tel" class="form-control" id="uPhone" placeholder="09xx-xxx-xxx">
+    </div>
+    
+    <div class="mb-4">
+      <label class="form-label small fw-bold">科別</label>
+      <select class="form-select" id="uDept">
+        <option value="內科">內科</option>
+        <option value="牙科">牙科</option>
+        <option value="兒科">兒科</option>
+        <option value="耳鼻喉科">耳鼻喉科</option>
+        <option value="眼科">眼科</option>
+        <option value="皮膚科">皮膚科</option>
+        <option value="婦產科">婦產科</option>
+        <option value="家醫科">家醫科</option>
+        <option value="其他">其他</option>
+      </select>
+    </div>
+
+    <button class="btn btn-success w-100 fw-bold py-2" onclick="submitData()">確認送出</button>
+  </div>
+
+  <h6 class="fw-bold text-muted ms-2 mb-2"><i class="bi bi-clock-history"></i> 上傳紀錄 (最近5筆)</h6>
+  <div id="historyList">
+    <div class="text-center py-4 text-muted small">載入中...</div>
   </div>
 
 </div>
 
 <script>
   // ==========================================
-  // ✅ 已填入您的資料
+  // ⚠️ 請務必填入最新的資料
   // ==========================================
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbyUXCejmkI52ZJVUN1K1t1j2ZvfdZMCgHsgB79okITgzn7to2sfte43R5I0GOQnFp1opQ/exec";
-  const LIFF_ID = "2008912977-DuJTm5u1";
+  // 1. 剛剛部署新版本的網址 (結尾是 /exec)
+  const GAS_URL = "https://script.google.com/macros/s/AKfycxxxxxxx/exec"; 
+  
+  // 2. 您的 LIFF ID
+  const LIFF_ID = "2008912977-DuJTm5u1"; 
   // ==========================================
 
   let lineUserId = "";
@@ -98,57 +125,63 @@
   function initLiff() {
     liff.init({ liffId: LIFF_ID }).then(() => {
       if (!liff.isLoggedIn()) {
-        liff.login();
+        liff.login(); // 強制登入
       } else {
         liff.getProfile().then(profile => {
           lineUserId = profile.userId;
-          document.getElementById('uName').value = profile.displayName;
+          const name = profile.displayName;
+          const pic = profile.pictureUrl;
+
+          // 顯示使用者資訊
+          document.getElementById('userNameDisplay').innerText = name;
+          document.getElementById('uName').value = name; // 自動帶入姓名
+          if(pic) document.getElementById('userThumb').src = pic;
+          document.getElementById('userInfo').style.display = 'flex';
+          
           document.getElementById('loading').style.display = 'none';
           
-          // 登入成功後，立刻抓取歷史紀錄
+          // 🔥 登入成功後，立刻抓取歷史紀錄
           loadHistory();
         });
       }
     }).catch(err => {
-      // 雖然 LIFF 失敗，但還是讓使用者可以用基本功能
-      console.error("LIFF Init Error:", err);
+      alert("LIFF 錯誤：" + err);
       document.getElementById('loading').style.display = 'none';
-      // alert("LIFF 啟動失敗，請檢查 LIFF ID 設定");
     });
   }
 
   // 讀取歷史紀錄
   function loadHistory() {
-    // 使用 text/plain 避免 CORS 預檢
     fetch(GAS_URL, {
       method: "POST",
       body: JSON.stringify({ action: "history", lineUserId: lineUserId })
     })
     .then(res => res.json())
     .then(data => {
-      if(data.status === 'success' && data.history && data.history.length > 0) {
-        renderHistory(data.history);
+      const container = document.getElementById('historyList');
+      container.innerHTML = ""; // 清空
+
+      if(data.status === 'success' && data.history.length > 0) {
+        data.history.forEach(item => {
+          let badgeClass = item.status === '可領藥' ? 'status-ready' : 'status-pending';
+          let html = `
+            <div class="history-item">
+              <img src="${item.img}" class="history-thumb">
+              <div style="flex-grow:1;">
+                <div class="d-flex justify-content-between">
+                  <span class="fw-bold text-dark">${item.dept || '處方箋'}</span>
+                  <span class="status-badge ${badgeClass}">${item.status}</span>
+                </div>
+                <div class="small text-muted mt-1">${item.date}</div>
+              </div>
+            </div>`;
+          container.innerHTML += html;
+        });
+      } else {
+        container.innerHTML = `<div class="text-center py-3 text-muted small">尚無上傳紀錄</div>`;
       }
     })
     .catch(e => console.log("History error:", e));
-  }
-
-  function renderHistory(list) {
-    const container = document.getElementById('historyList');
-    container.innerHTML = "";
-    list.forEach(item => {
-      let badgeClass = item.status === '可領藥' ? 'status-ready' : 'status-pending';
-      let html = `
-        <div class="history-item">
-          <img src="${item.img}" class="history-thumb" onerror="this.src='https://placehold.co/50?text=Rx'">
-          <div style="flex-grow: 1;">
-            <div class="small fw-bold">${item.date}</div>
-            <div class="status-badge ${badgeClass} d-inline-block">${item.status}</div>
-          </div>
-        </div>`;
-      container.innerHTML += html;
-    });
-    document.getElementById('historyCard').style.display = 'block';
   }
 
   function handleFile(input) {
@@ -157,10 +190,24 @@
       fileName = file.name;
       const reader = new FileReader();
       reader.onload = function(e) {
-        base64Image = e.target.result;
-        document.getElementById('previewImg').src = base64Image;
-        document.getElementById('previewImg').style.display = 'block';
-        document.getElementById('placeholder').style.display = 'none';
+        // 簡易圖片壓縮
+        const img = new Image();
+        img.src = e.target.result;
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          let w = img.width, h = img.height;
+          // 限制最大寬度 800px (加速上傳)
+          if(w > 800) { h *= 800/w; w = 800; }
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          
+          base64Image = canvas.toDataURL('image/jpeg', 0.7); // 壓縮品質 0.7
+          
+          document.getElementById('previewImg').src = base64Image;
+          document.getElementById('previewImg').style.display = 'block';
+          document.getElementById('placeholder').style.display = 'none';
+        }
       }
       reader.readAsDataURL(file);
     }
@@ -169,25 +216,25 @@
   function submitData() {
     const name = document.getElementById('uName').value;
     const phone = document.getElementById('uPhone').value;
+    const dept = document.getElementById('uDept').value; // 取得科別
 
     if (!base64Image) return alert("⚠️ 請拍攝處方箋！");
     if (!name || !phone) return alert("⚠️ 請填寫完整資料！");
 
     document.getElementById('loading').style.display = 'flex';
-    document.getElementById('loadingText').innerText = "上傳中...";
+    document.getElementById('loadingText').innerText = "資料上傳中...";
 
     const payload = {
       action: "upload",
       name: name,
       phone: phone,
+      dept: dept, // 傳送科別
       notify: "LINE通知",
       fileData: base64Image,
       fileName: fileName,
-      lineUserId: lineUserId,
-      dept: "前台上傳"
+      lineUserId: lineUserId
     };
 
-    // 🔥 關鍵修正：直接送出，不加 headers，避開 CORS
     fetch(GAS_URL, {
       method: "POST",
       body: JSON.stringify(payload)
@@ -197,16 +244,14 @@
       document.getElementById('loading').style.display = 'none';
       if(response.status === 'success') {
         alert("✅ 上傳成功！");
-        location.reload(); // 重整頁面以更新紀錄
+        location.reload(); // 重整看紀錄
       } else {
         alert("❌ 失敗：" + response.message);
       }
     })
     .catch(error => {
       document.getElementById('loading').style.display = 'none';
-      // 這裡如果出現 SyntaxError 以外的錯誤，可能是網路問題
-      // 但如果是 GAS 重定向問題，通常代表資料已送出
-      alert("上傳完成 (請確認下方歷史紀錄)"); 
+      alert("傳送完畢，請確認下方紀錄。");
       setTimeout(() => location.reload(), 2000);
     });
   }
