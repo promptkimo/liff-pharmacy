@@ -23,7 +23,7 @@
     .preview-box img { width: 100%; height: 100%; object-fit: contain; display: none; }
     .placeholder-text { color: #6c757d; text-align: center; font-size: 0.9rem; }
     
-    .hidden-mode { display: none !important; } /* 隱藏模式 */
+    .hidden-mode { display: none !important; } /* 隱藏模式樣式 */
 
     .history-item { display: flex; align-items: center; padding: 12px; border-bottom: 1px solid #f0f0f0; background: white; }
     .history-item:last-child { border-bottom: none; }
@@ -79,12 +79,12 @@
       <input type="tel" class="form-control" id="uPhone" placeholder="請輸入聯絡電話">
     </div>
     
-    <div class="mb-3">
+    <div class="mb-3" id="deptSection">
       <label class="form-label small fw-bold">科別 (選填)</label>
       <input type="text" class="form-control" id="uDept" placeholder="例如：牙科、內科...">
     </div>
 
-    <div class="mb-4">
+    <div class="mb-4" id="notifySection">
       <label class="form-label small fw-bold">希望通知方式</label>
       <select class="form-select" id="uNotify">
         <option value="LINE通知" selected>LINE 通知 (推薦)</option>
@@ -117,20 +117,24 @@
   let base64Image = "";
   let fileName = "";
   
-  // 🔥 偵測網址參數：是否為現場登記模式
+  // 偵測網址參數：是否為現場登記模式
   const urlParams = new URLSearchParams(window.location.search);
   const isRegisterMode = urlParams.get('mode') === 'register';
 
   window.onload = function() {
-    initInterface(); // 初始化介面
+    initInterface(); 
     initLiff();
   };
 
   function initInterface() {
     if (isRegisterMode) {
-      // 現場登記模式：隱藏拍照、修改標題、隱藏歷史
+      // 現場登記模式：隱藏 拍照、科別、通知方式、歷史紀錄
       document.getElementById('cameraSection').classList.add('hidden-mode');
+      document.getElementById('deptSection').classList.add('hidden-mode');
+      document.getElementById('notifySection').classList.add('hidden-mode');
       document.getElementById('historySection').classList.add('hidden-mode');
+      
+      // 修改標題
       document.getElementById('formTitle').innerHTML = '<i class="bi bi-person-check-fill"></i> 現場領藥登記';
     }
   }
@@ -219,12 +223,17 @@
   function submitData() {
     const name = document.getElementById('uName').value;
     const phone = document.getElementById('uPhone').value;
-    const dept = document.getElementById('uDept').value;
-    const notify = document.getElementById('uNotify').value;
-
-    // 🔥 檢查：如果不是現場登記模式，才強制要有圖片
-    if (!isRegisterMode && !base64Image) return alert("⚠️ 請拍攝處方箋！");
     
+    // 🔥 智慧邏輯：現場登記模式自動填入預設值
+    let dept = document.getElementById('uDept').value;
+    let notify = document.getElementById('uNotify').value;
+
+    if (isRegisterMode) {
+      dept = "現場登記"; // 強制寫入現場
+      notify = "LINE通知"; // 強制 LINE 通知
+    }
+
+    if (!isRegisterMode && !base64Image) return alert("⚠️ 請拍攝處方箋！");
     if (!name || !phone) return alert("⚠️ 請填寫完整資料！");
 
     document.getElementById('loading').style.display = 'flex';
@@ -235,12 +244,12 @@
       name: name, 
       lineName: lineDisplayName, 
       phone: phone,
-      dept: dept || "現場登記", // 若沒填科別，預設為現場
+      dept: dept, 
       notify: notify,
-      fileData: base64Image, // 現場模式下這會是空的
+      fileData: base64Image,
       fileName: fileName,
       lineUserId: lineUserId,
-      isRegister: isRegisterMode // 告訴後端這是純登記
+      isRegister: isRegisterMode 
     };
 
     fetch(GAS_URL, {
@@ -252,7 +261,6 @@
       document.getElementById('loading').style.display = 'none';
       if(response.status === 'success') {
         alert("✅ 登記成功！\n藥師確認後會發送通知。");
-        // 如果是現場登記，可以選擇關閉視窗或重整
         if(isRegisterMode) liff.closeWindow(); 
         else location.reload();
       } else {
